@@ -6,7 +6,7 @@ RoadSoS provides location-based access to nearby trauma centres, ambulance servi
 
 ## 🌐 Live Demo
 
-> [https://ukjashi.github.io/roadsos/]ps(htt://ukjashi.github.io/roadsos/)
+> [[https://ukjashi.github.io/roadsos/](https://delicate-genie-0007b6.netlify.app/)
 
 *
 
