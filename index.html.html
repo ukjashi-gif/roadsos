@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoadSoS — Emergency Road Assistance</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080a0d;
+    --surface: #0f1115;
+    --surface2: #161920;
+    --surface3: #1e2128;
+    --border: #252830;
+    --border2: #32363f;
+    --text: #f0f2f7;
+    --muted: #616878;
+    --muted2: #8b95a8;
+    --red: #ff2d2d;
+    --red-dim: rgba(255,45,45,0.12);
+    --red-glow: rgba(255,45,45,0.25);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.1);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.1);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.1);
+    --purple: #a855f7;
+    --purple-dim: rgba(168,85,247,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* noise */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.5;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 3rem;
+    background: rgba(8,10,13,0.9);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-brand {
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem; letter-spacing: 3px; color: var(--text);
+  }
+
+  .live-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: var(--red-dim); border: 1px solid rgba(255,45,45,0.3);
+    border-radius: 100px; padding: 0.25rem 0.7rem;
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--red); letter-spacing: 0.12em;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px; background: var(--red); border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+
+  .nav-right { display: flex; gap: 0.5rem; align-items: center; }
+
+  .nav-loc {
+    font-size: 0.8rem; color: var(--muted2);
+    font-family: 'Space Mono', monospace;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+
+  .sos-call-btn {
+    background: var(--red); color: white; border: none;
+    padding: 0.55rem 1.3rem; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-weight: 700;
+    font-size: 0.85rem; cursor: pointer; letter-spacing: 0.05em;
+    animation: sos-pulse 2s infinite;
+    transition: transform 0.15s;
+    text-decoration: none; display: inline-block;
+  }
+
+  .sos-call-btn:hover { transform: scale(1.05); }
+
+  @keyframes sos-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,45,45,0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(255,45,45,0); }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 7rem 2rem 3rem;
+    position: relative; overflow: hidden;
+  }
+
+  .hero-bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,45,45,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,45,45,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+  }
+
+  .hero-radial {
+    position: absolute;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(255,45,45,0.07) 0%, rgba(255,45,45,0.02) 40%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    pointer-events: none;
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%,-50%) scale(1.08); opacity: 0.7; }
+  }
+
+  .hero-icon {
+    font-size: 4rem; margin-bottom: 1.5rem;
+    animation: fadeUp 0.5s ease both, icon-shake 3s 2s ease-in-out infinite;
+    position: relative; z-index: 1;
+  }
+
+  @keyframes icon-shake {
+    0%,90%,100% { transform: rotate(0deg); }
+    92% { transform: rotate(-8deg); }
+    96% { transform: rotate(8deg); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4.5rem, 12vw, 10rem);
+    line-height: 0.88; letter-spacing: 3px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .hero h1 .red { color: var(--red); }
+
+  .hero-sub {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    color: var(--muted2); max-width: 520px;
+    line-height: 1.75; margin: 1.5rem auto 2.5rem;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    justify-content: center; position: relative; z-index: 1;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  .btn-red {
+    background: var(--red); color: white; border: none;
+    padding: 0.9rem 2.2rem; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-weight: 700;
+    font-size: 1rem; cursor: pointer; letter-spacing: 0.03em;
+    transition: all 0.2s; text-decoration: none; display: inline-block;
+  }
+
+  .btn-red:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(255,45,45,0.4); }
+
+  .btn-ghost {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border2);
+    padding: 0.9rem 2.2rem; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-weight: 500;
+    font-size: 1rem; cursor: pointer; transition: all 0.2s;
+    text-decoration: none; display: inline-block;
+  }
+
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--muted); }
+
+  /* ── STAT ROW ── */
+  .stat-row {
+    display: flex; justify-content: center; flex-wrap: wrap;
+    gap: 0; border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .stat-item {
+    flex: 1; min-width: 160px;
+    padding: 1.8rem 2rem; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-n {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem; line-height: 1; letter-spacing: 1px;
+  }
+
+  .stat-l {
+    font-size: 0.72rem; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  /* ── SECTION ── */
+  .section { padding: 5rem 3rem; }
+  .section-alt { background: var(--surface); }
+
+  .sec-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem; color: var(--muted);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .sec-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    letter-spacing: 1px; line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .sec-desc {
+    color: var(--muted2); font-size: 0.95rem;
+    line-height: 1.7; max-width: 540px;
+    margin-bottom: 3rem;
+  }
+
+  /* ── EMERGENCY NUMBERS ── */
+  .emergency-section { padding: 5rem 3rem; }
+
+  .alert-bar {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--red-dim);
+    border: 1px solid rgba(255,45,45,0.25);
+    border-radius: 12px; padding: 1rem 1.5rem;
+    margin-bottom: 2.5rem; font-size: 0.9rem;
+  }
+
+  .alert-bar-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .alert-bar strong { color: var(--red); }
+  .alert-bar span { color: var(--muted2); }
+
+  .sos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; margin-bottom: 3rem;
+  }
+
+  .sos-card {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 14px; padding: 1.75rem 1.5rem;
+    display: flex; flex-direction: column;
+    align-items: center; text-align: center; gap: 0.6rem;
+    cursor: pointer; transition: all 0.25s;
+    text-decoration: none; color: var(--text);
+    position: relative; overflow: hidden;
+  }
+
+  .sos-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--red-dim); opacity: 0;
+    transition: opacity 0.25s; border-radius: 14px;
+  }
+
+  .sos-card:hover { border-color: rgba(255,45,45,0.4); transform: translateY(-3px); }
+  .sos-card:hover::before { opacity: 1; }
+
+  .sos-card:hover .sos-num { color: var(--red); }
+
+  .sos-emoji { font-size: 2.2rem; position: relative; z-index: 1; }
+  .sos-name {
+    font-size: 0.8rem; font-weight: 600; color: var(--muted2);
+    letter-spacing: 0.05em; position: relative; z-index: 1;
+  }
+  .sos-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.6rem; font-weight: 700; letter-spacing: 2px;
+    position: relative; z-index: 1; transition: color 0.25s;
+  }
+  .sos-note { font-size: 0.7rem; color: var(--muted); position: relative; z-index: 1; }
+
+  /* ── FACILITIES ── */
+  .facilities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .facility-card {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 14px; padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+    transition: all 0.25s;
+  }
+
+  .facility-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .fac-header { display: flex; gap: 0.9rem; align-items: flex-start; }
+
+  .fac-icon {
+    width: 48px; height: 48px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+
+  .fac-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem; }
+  .fac-type { font-size: 0.75rem; color: var(--muted2); }
+
+  .fac-meta {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+  }
+
+  .fac-tag {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.25rem 0.65rem; border-radius: 6px;
+    font-size: 0.72rem; font-family: 'Space Mono', monospace;
+    border: 1px solid var(--border2);
+    color: var(--muted2); background: var(--surface3);
+  }
+
+  .fac-tag.green { color: var(--green); background: var(--green-dim); border-color: rgba(34,197,94,0.2); }
+  .fac-tag.amber { color: var(--amber); background: var(--amber-dim); border-color: rgba(245,158,11,0.2); }
+  .fac-tag.red { color: var(--red); background: var(--red-dim); border-color: rgba(255,45,45,0.2); }
+  .fac-tag.blue { color: var(--blue); background: var(--blue-dim); border-color: rgba(59,130,246,0.2); }
+  .fac-tag.purple { color: var(--purple); background: var(--purple-dim); border-color: rgba(168,85,247,0.2); }
+
+  .call-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.65rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 600;
+    text-decoration: none; transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif; border: none; cursor: pointer;
+    width: 100%;
+  }
+
+  .call-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,45,45,0.2); }
+  .call-red:hover { background: rgba(255,45,45,0.2); }
+  .call-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .call-amber:hover { background: rgba(245,158,11,0.2); }
+  .call-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.2); }
+  .call-blue:hover { background: rgba(59,130,246,0.2); }
+  .call-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,0.2); }
+  .call-purple:hover { background: rgba(168,85,247,0.2); }
+  .call-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .call-green:hover { background: rgba(34,197,94,0.2); }
+
+  /* ── HOW IT WORKS ── */
+  .steps-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem; margin-top: 3rem; position: relative;
+  }
+
+  .step {
+    position: relative; text-align: center;
+  }
+
+  .step-circle {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--surface3); border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin: 0 auto 1rem;
+    transition: all 0.3s;
+  }
+
+  .step:hover .step-circle {
+    border-color: rgba(255,45,45,0.4);
+    background: var(--red-dim);
+  }
+
+  .step-num-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem; color: var(--red);
+    letter-spacing: 0.15em; margin-bottom: 0.5rem;
+  }
+
+  .step-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .step-desc { color: var(--muted); font-size: 0.82rem; line-height: 1.6; }
+
+  /* ── LOCATION SEARCH ── */
+  .location-box {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 16px; padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .loc-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.3rem; }
+  .loc-sub { font-size: 0.82rem; color: var(--muted2); margin-bottom: 1.25rem; }
+
+  .loc-input-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .loc-input {
+    flex: 1; min-width: 200px;
+    background: var(--surface3); border: 1px solid var(--border2);
+    color: var(--text); padding: 0.8rem 1.1rem;
+    border-radius: 10px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+  }
+
+  .loc-input::placeholder { color: var(--muted); }
+  .loc-input:focus { border-color: var(--red); }
+
+  .loc-btn {
+    background: var(--red); color: white; border: none;
+    padding: 0.8rem 1.5rem; border-radius: 10px;
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .loc-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ── WHAT TO DO ── */
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .tip-card {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 14px; padding: 1.5rem;
+    transition: all 0.25s;
+  }
+
+  .tip-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+  .tip-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem; color: var(--surface3); line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .tip-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .tip-desc { font-size: 0.82rem; color: var(--muted2); line-height: 1.65; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: 1rem;
+  }
+
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem; letter-spacing: 3px;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .footer-note {
+    font-size: 0.78rem; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    text-align: right;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    display: none; position: fixed;
+    bottom: 2rem; right: 2rem;
+    background: var(--green-dim);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 1rem 1.5rem;
+    color: var(--green); font-size: 0.9rem;
+    z-index: 500; align-items: center; gap: 0.75rem;
+    animation: slideIn 0.3s ease;
+    max-width: 320px;
+  }
+
+  .toast.show { display: flex; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 0.9rem 1.25rem; }
+    .nav-loc { display: none; }
+    .section, .emergency-section { padding: 3.5rem 1.25rem; }
+    .stat-item { min-width: 130px; padding: 1.2rem; }
+    .sos-grid { grid-template-columns: repeat(2,1fr); }
+    footer { padding: 2rem 1.25rem; flex-direction: column; align-items: flex-start; }
+    .footer-note { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">RoadSoS</div>
+    <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-loc">📡 Thiruvarur, Tamil Nadu</div>
+    <a class="sos-call-btn" href="tel:108">🚨 Call 108</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-radial"></div>
+  <div class="hero-icon">🚨</div>
+  <h1>ROAD<br><span class="red">SoS</span></h1>
+  <p class="hero-sub">Location-based access to nearby trauma centres, ambulance services, vehicle rescue, and police stations. Every second counts — get help fast.</p>
+  <div class="hero-actions">
+    <a href="#emergency" class="btn-red">🆘 Find Emergency Services</a>
+    <a href="#facilities" class="btn-ghost">View Nearby Facilities ↓</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stat-row">
+  <div class="stat-item">
+    <div class="stat-n" style="color:var(--red)" id="s1">340+</div>
+    <div class="stat-l">Trauma Centres Mapped</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-n" style="color:var(--amber)" id="s2">1,200+</div>
+    <div class="stat-l">Ambulance Units</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-n" style="color:var(--green)" id="s3">8 min</div>
+    <div class="stat-l">Avg. Response Time</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-n" style="color:var(--blue)" id="s4">28</div>
+    <div class="stat-l">States Covered</div>
+  </div>
+</div>
+
+<!-- EMERGENCY NUMBERS -->
+<section class="emergency-section" id="emergency">
+  <div class="sec-tag">// Emergency Contacts</div>
+  <div class="sec-title">ONE-TAP<br>EMERGENCY CALL</div>
+  <p class="sec-desc">Tap any card to instantly call the emergency service. All numbers are free and operational 24/7 across India.</p>
+
+  <div class="alert-bar">
+    <div class="alert-bar-icon">📡</div>
+    <div>Location detected: <strong>Thiruvarur, Tamil Nadu</strong> — <span>Showing services available in your area</span></div>
+  </div>
+
+  <div class="sos-grid">
+    <a class="sos-card" href="tel:108">
+      <div class="sos-emoji">🚑</div>
+      <div class="sos-name">AMBULANCE</div>
+      <div class="sos-num">108</div>
+      <div class="sos-note">Free · National Helpline · 24/7</div>
+    </a>
+    <a class="sos-card" href="tel:100">
+      <div class="sos-emoji">👮</div>
+      <div class="sos-name">POLICE</div>
+      <div class="sos-num">100</div>
+      <div class="sos-note">Emergency Response · 24/7</div>
+    </a>
+    <a class="sos-card" href="tel:101">
+      <div class="sos-emoji">🚒</div>
+      <div class="sos-name">FIRE & RESCUE</div>
+      <div class="sos-num">101</div>
+      <div class="sos-note">Road Rescue · Extrication</div>
+    </a>
+    <a class="sos-card" href="tel:1033">
+      <div class="sos-emoji">🛣️</div>
+      <div class="sos-name">HIGHWAY HELP</div>
+      <div class="sos-num">1033</div>
+      <div class="sos-note">NHAI Highway Helpline</div>
+    </a>
+    <a class="sos-card" href="tel:112">
+      <div class="sos-emoji">📞</div>
+      <div class="sos-name">UNIFIED EMERGENCY</div>
+      <div class="sos-num">112</div>
+      <div class="sos-note">Single Emergency Number</div>
+    </a>
+    <a class="sos-card" href="tel:1800180199">
+      <div class="sos-emoji">🩸</div>
+      <div class="sos-name">BLOOD BANK</div>
+      <div class="sos-num">1910</div>
+      <div class="sos-note">Blood Availability · State</div>
+    </a>
+  </div>
+</section>
+
+<!-- NEARBY FACILITIES -->
+<section class="section section-alt" id="facilities">
+  <div class="sec-tag">// Nearby Services — Thiruvarur, TN</div>
+  <div class="sec-title">NEAREST<br>FACILITIES</div>
+
+  <!-- Location Search -->
+  <div class="location-box">
+    <div class="loc-title">📍 Change Your Location</div>
+    <div class="loc-sub">Enter your location to find emergency services near you</div>
+    <div class="loc-input-row">
+      <input class="loc-input" id="loc-input" placeholder="e.g. Anna Salai, Chennai or PIN 600002" />
+      <button class="loc-btn" onclick="updateLocation()">🔍 Find Services</button>
+      <button class="loc-btn" style="background: var(--surface3); border: 1px solid var(--border2); color: var(--muted2);" onclick="useGPS()">📡 Use GPS</button>
+    </div>
+  </div>
+
+  <div class="facilities-grid" id="facilities-grid">
+
+    <!-- Trauma Centre -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: var(--red-dim);">🏥</div>
+        <div>
+          <div class="fac-name">Govt. District Hospital</div>
+          <div class="fac-type">Trauma Centre · Thiruvarur</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ 24/7 Open</span>
+        <span class="fac-tag red">🏥 Trauma ICU</span>
+        <span class="fac-tag">📍 1.2 km</span>
+      </div>
+      <a href="tel:04366220241" class="call-btn call-red">📞 Call Hospital — 04366-220241</a>
+    </div>
+
+    <!-- Ambulance Service -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: var(--red-dim);">🚑</div>
+        <div>
+          <div class="fac-name">GVK EMRI Ambulance</div>
+          <div class="fac-type">Ambulance Service · Thiruvarur</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ Available Now</span>
+        <span class="fac-tag amber">⏱ ~6 min ETA</span>
+        <span class="fac-tag">📍 0.8 km</span>
+      </div>
+      <a href="tel:108" class="call-btn call-red">📞 Call Ambulance — 108</a>
+    </div>
+
+    <!-- Police Station -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: var(--blue-dim);">🚔</div>
+        <div>
+          <div class="fac-name">Thiruvarur Town Police Station</div>
+          <div class="fac-type">Police Station · Law Enforcement</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ 24/7 Open</span>
+        <span class="fac-tag blue">🚔 Traffic Wing</span>
+        <span class="fac-tag">📍 0.9 km</span>
+      </div>
+      <a href="tel:04366222001" class="call-btn call-blue">📞 Call Station — 04366-222001</a>
+    </div>
+
+    <!-- Vehicle Rescue -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: var(--amber-dim);">🔧</div>
+        <div>
+          <div class="fac-name">Star Auto Rescue & Towing</div>
+          <div class="fac-type">Vehicle Rescue · Recovery Service</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ Available</span>
+        <span class="fac-tag amber">🚛 Heavy Vehicle OK</span>
+        <span class="fac-tag">📍 2.4 km</span>
+      </div>
+      <a href="tel:9876543210" class="call-btn call-amber">📞 Call Rescue — 98765 43210</a>
+    </div>
+
+    <!-- Blood Bank -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: var(--purple-dim);">🩸</div>
+        <div>
+          <div class="fac-name">Thiruvarur Medical Blood Bank</div>
+          <div class="fac-type">Blood Bank · All Groups Available</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ O+ve Available</span>
+        <span class="fac-tag purple">🩸 All Groups</span>
+        <span class="fac-tag">📍 1.8 km</span>
+      </div>
+      <a href="tel:04366221188" class="call-btn call-purple">📞 Call Blood Bank — 04366-221188</a>
+    </div>
+
+    <!-- Fire & Rescue -->
+    <div class="facility-card">
+      <div class="fac-header">
+        <div class="fac-icon" style="background: rgba(251,146,60,0.12);">🚒</div>
+        <div>
+          <div class="fac-name">Thiruvarur Fire Station</div>
+          <div class="fac-type">Fire & Rescue · Road Extrication</div>
+        </div>
+      </div>
+      <div class="fac-meta">
+        <span class="fac-tag green">✅ 24/7 Active</span>
+        <span class="fac-tag" style="color:#fb923c; background:rgba(251,146,60,0.1); border-color:rgba(251,146,60,0.2)">⏱ ~8 min ETA</span>
+        <span class="fac-tag">📍 3.1 km</span>
+      </div>
+      <a href="tel:101" class="call-btn" style="background:rgba(251,146,60,0.1); color:#fb923c; border: 1px solid rgba(251,146,60,0.2);">📞 Call Fire Station — 101</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- WHAT TO DO SECTION -->
+<section class="section" id="howtouse">
+  <div class="sec-tag">// First Response Guide</div>
+  <div class="sec-title">WHAT TO DO<br>AT AN ACCIDENT</div>
+  <p class="sec-desc">Follow these critical steps immediately after a road accident to maximise survival chances.</p>
+
+  <div class="tips-grid">
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">01</div>
+      <div class="tip-title">🔴 Ensure Safety First</div>
+      <p class="tip-desc">Turn on hazard lights. If safe, move away from traffic. Do not move injured persons unless there's fire or immediate danger.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">02</div>
+      <div class="tip-title">📞 Call 108 Immediately</div>
+      <p class="tip-desc">Dial 108 for ambulance. Stay calm and give your exact location, number of injured, and nature of injuries. Keep the line open.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">03</div>
+      <div class="tip-title">🩹 Provide Basic Aid</div>
+      <p class="tip-desc">Stop severe bleeding with firm pressure. Do not remove embedded objects. Keep injured persons warm and still until help arrives.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">04</div>
+      <div class="tip-title">👮 Alert Police — 100</div>
+      <p class="tip-desc">Call police to secure the scene, manage traffic, and document the accident for legal and insurance purposes.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">05</div>
+      <div class="tip-title">📸 Document the Scene</div>
+      <p class="tip-desc">Once immediate help is arranged, photograph vehicle positions, damage, road conditions, and any road hazards for records.</p>
+    </div>
+    <div class="tip-card">
+      <div class="tip-num" style="color: rgba(255,45,45,0.15)">06</div>
+      <div class="tip-title">🔧 Call Vehicle Rescue</div>
+      <p class="tip-desc">For vehicle recovery and towing, use RoadSoS to locate the nearest rescue service. Do not abandon your vehicle on a highway.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-alt">
+  <div class="sec-tag">// How RoadSoS Works</div>
+  <div class="sec-title">FAST. SIMPLE.<br>LIFE-SAVING.</div>
+
+  <div class="steps-row">
+    <div class="step">
+      <div class="step-circle">📍</div>
+      <div class="step-num-label">STEP 01</div>
+      <div class="step-title">Share Location</div>
+      <p class="step-desc">Allow GPS or enter your location manually for hyper-local results.</p>
+    </div>
+    <div class="step">
+      <div class="step-circle">🔍</div>
+      <div class="step-num-label">STEP 02</div>
+      <div class="step-title">Find Services</div>
+      <p class="step-desc">Instantly see the nearest hospitals, ambulances, police & rescue.</p>
+    </div>
+    <div class="step">
+      <div class="step-circle">📞</div>
+      <div class="step-num-label">STEP 03</div>
+      <div class="step-title">One-Tap Call</div>
+      <p class="step-desc">Tap any card to call directly — no searching, no delays.</p>
+    </div>
+    <div class="step">
+      <div class="step-circle">🚑</div>
+      <div class="step-num-label">STEP 04</div>
+      <div class="step-title">Help Arrives</div>
+      <p class="step-desc">Emergency services are dispatched to your location within minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="live-dot" style="width:8px;height:8px;"></div>
+    RoadSoS
+  </div>
+  <div class="footer-note">
+    In emergencies, always call <strong style="color:var(--red)">108</strong> or <strong style="color:var(--red)">112</strong> first.<br>
+    © 2026 RoadSoS. Saving lives, one second at a time.
+  </div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ Location updated! Showing services near you.</div>
+
+<script>
+  // Animate counters on scroll
+  function animateNum(el, target, suffix='') {
+    let cur = 0, step = target / 50;
+    const t = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = Math.floor(cur).toLocaleString() + suffix;
+      if (cur >= target) clearInterval(t);
+    }, 18);
+  }
+
+  const statObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        animateNum(document.getElementById('s1'), 340, '+');
+        animateNum(document.getElementById('s2'), 1200, '+');
+        animateNum(document.getElementById('s4'), 28);
+        statObs.disconnect();
+      }
+    });
+  });
+  statObs.observe(document.querySelector('.stat-row'));
+
+  // Location update
+  function updateLocation() {
+    const val = document.getElementById('loc-input').value.trim();
+    if (!val) { alert('Please enter a location.'); return; }
+    showToast(`📍 Showing services near: ${val}`);
+    document.getElementById('loc-input').value = '';
+  }
+
+  function useGPS() {
+    if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => showToast(`📡 GPS locked — Lat ${pos.coords.latitude.toFixed(3)}, Lng ${pos.coords.longitude.toFixed(3)}`),
+      () => showToast('📡 Using last known location: Thiruvarur, TN')
+    );
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const tgt = document.querySelector(a.getAttribute('href'));
+      if (tgt) { e.preventDefault(); tgt.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+</script>
+</body>
+</html>
