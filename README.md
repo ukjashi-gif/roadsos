@@ -6,7 +6,7 @@ RoadSoS provides location-based access to nearby trauma centres, ambulance servi
 
 ## 🌐 Live Demo
 
-> [[https://ukjashi.github.io/roadsos/]((https://road-sos-hackathon.vercel.app/))
+> [[https://road-sos-hackathon.vercel.app/]]
 
 *
 
